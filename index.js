@@ -1,129 +1,111 @@
 const express = require('express');
-const cors = require('cors');
-const http = require('http');
 const https = require('https');
+const http = require('http');
+const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.static('public'));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Main proxy endpoint - disguised as calculator
-app.all('/calc', async (req, res) => {
+// Proxy endpoint
+app.get('/calc', (req, res) => {
   try {
-    let targetUrl = req.query.url || req.body?.url;
+    const targetUrl = req.query.url;
 
     if (!targetUrl) {
       return res.status(400).send('Missing URL parameter');
     }
 
-    // Verify it's a valid URL
+    // Validate URL
+    let parsedUrl;
     try {
-      new URL(targetUrl);
+      parsedUrl = new URL(targetUrl);
     } catch (e) {
       return res.status(400).send('Invalid URL format');
     }
 
+    const protocol = parsedUrl.protocol === 'https:' ? https : http;
+    
     const options = {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
       },
-      timeout: 10000,
-      redirect: 'follow'
+      timeout: 15000
     };
 
-    // Use appropriate protocol
-    const protocol = targetUrl.startsWith('https') ? https : http;
+    protocol.get(parsedUrl, options, (proxyRes) => {
+      // Set response headers
+      res.status(proxyRes.statusCode || 200);
+      
+      // Copy headers from target response
+      const contentType = proxyRes.headers['content-type'] || 'text/html; charset=utf-8';
+      res.setHeader('Content-Type', contentType);
+      
+      if (proxyRes.headers['content-length']) {
+        res.setHeader('Content-Length', proxyRes.headers['content-length']);
+      }
 
-    protocol.get(targetUrl, options, (proxyRes) => {
-      // Forward status code
-      res.statusCode = proxyRes.statusCode || 200;
-
-      // Forward important headers
-      const headers = {
-        'Content-Type': proxyRes.headers['content-type'] || 'text/html',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      };
-
-      // Allow framing
+      // Always allow framing
       res.removeHeader('X-Frame-Options');
+      res.setHeader('Access-Control-Allow-Origin', '*');
 
-      Object.keys(headers).forEach(key => {
-        res.setHeader(key, headers[key]);
-      });
-
-      // Pipe response
+      // Pipe the response
       proxyRes.pipe(res);
 
     }).on('error', (err) => {
-      console.error('Proxy error:', err);
-      res.status(502).send(`<h2>Error fetching URL</h2><p>${err.message}</p>`);
+      console.error('[PROXY ERROR]', err.message);
+      res.status(502).send(`
+        <html>
+          <head>
+            <style>
+              body { font-family: Arial; text-align: center; padding: 50px; background: #f5f5f5; }
+              .error-box { background: white; padding: 40px; border-radius: 8px; }
+              h2 { color: #d32f2f; }
+              p { color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="error-box">
+              <h2>⚠️ Error Loading Page</h2>
+              <p>${err.message}</p>
+              <p>This might mean the site is blocking proxy requests or is temporarily unavailable.</p>
+            </div>
+          </body>
+        </html>
+      `);
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[SERVER ERROR]', error);
     res.status(500).send(`<h2>Server Error</h2><p>${error.message}</p>`);
   }
 });
 
-// POST support for iframe form submissions
-app.post('/calc', async (req, res) => {
-  const targetUrl = req.query.url;
-  if (!targetUrl) {
-    return res.status(400).send('Missing URL');
-  }
-  
-  // Forward to GET handler
-  req.query.url = targetUrl;
-  req.method = 'GET';
-  const options = {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-  };
-
-  const protocol = targetUrl.startsWith('https') ? https : http;
-  protocol.get(targetUrl, options, (proxyRes) => {
-    res.status(proxyRes.statusCode || 200);
-    res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'text/html');
-    proxyRes.pipe(res);
-  }).on('error', (err) => {
-    res.status(502).send(`Error: ${err.message}`);
-  });
-});
-
-// Alternative endpoint names for obfuscation
+// Aliases for proxy
 app.get('/math', (req, res) => {
-  res.redirect(302, `/calc?url=${req.query.url}`);
+  res.redirect(`/calc?url=${encodeURIComponent(req.query.url)}`);
 });
 
 app.get('/tool', (req, res) => {
-  res.redirect(302, `/calc?url=${req.query.url}`);
+  res.redirect(`/calc?url=${encodeURIComponent(req.query.url)}`);
 });
 
-// Search API
-app.get('/api/search', (req, res) => {
-  const query = req.query.q;
-  if (!query) {
-    return res.status(400).json({ error: 'Missing query' });
-  }
-  
-  const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-  res.json({ url: `/calc?url=${encodeURIComponent(searchUrl)}` });
-});
-
-// Root
+// Root route
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'online' });
+  res.json({ status: 'online', timestamp: new Date().toISOString() });
 });
 
 // 404 handler
@@ -133,5 +115,5 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🧮 Calculator Tool running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

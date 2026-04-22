@@ -242,7 +242,8 @@
   }
 
   function openTab(url) {
-    const proxied = PROXY_ENDPOINT + encodeURIComponent(url);
+    const encodedUrl = encodeURIComponent(url);
+    const proxied = `/calc?url=${encodedUrl}`;
 
     const tab = document.createElement("div");
     tab.className = "tab";
@@ -276,6 +277,7 @@
     tab.appendChild(label);
     tab.appendChild(closeBtn);
     tab.dataset.url = proxied;
+    tab.dataset.originalUrl = url;
 
     tab.onclick = () => {
       setActive(tab);
