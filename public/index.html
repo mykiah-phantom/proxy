@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Calculator Tool</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #topBar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #homeBtn {
+      padding: 10px 18px;
+      background: #fff;
+      color: #667eea;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+
+    #homeBtn:hover {
+      transform: scale(1.05);
+    }
+
+    #searchBar {
+      flex: 1;
+      padding: 11px 14px;
+      font-size: 15px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.95);
+    }
+
+    #searchBar:focus {
+      outline: none;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    }
+
+    #tabs {
+      display: flex;
+      background: #e8e8e8;
+      padding: 6px;
+      overflow-x: auto;
+      border-bottom: 1px solid #ddd;
+      gap: 4px;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: #d0d0d0;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      max-width: 200px;
+      transition: background 0.2s;
+    }
+
+    .tab:hover {
+      background: #c0c0c0;
+    }
+
+    .tab.active { 
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .tab span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .closeBtn {
+      margin-left: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 4px;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .closeBtn:hover {
+      opacity: 1;
+    }
+
+    #viewer {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: white;
+    }
+
+    #homeContent {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #homeContent h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    #homeContent p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 500px;
+    }
+
+    .tips {
+      margin-top: 30px;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+    }
+
+    .tips h3 {
+      margin-bottom: 10px;
+    }
+
+    .tips ul {
+      text-align: left;
+      list-style: none;
+    }
+
+    .tips li {
+      padding: 5px 0;
+      opacity: 0.9;
+    }
+
+    .loading {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="topBar">
+  <button id="homeBtn">🏠 Home</button>
+  <input id="searchBar" placeholder="Search anything or paste a URL (itch.io, xbox.com, etc.)">
+</div>
+
+<div id="tabs"></div>
+
+<iframe id="viewer"></iframe>
+
+<script>
+  const searchBar = document.getElementById("searchBar");
+  const tabs = document.getElementById("tabs");
+  const viewer = document.getElementById("viewer");
+
+  const PROXY_ENDPOINT = "/calc?url=";
+
+  function showHome() {
+    viewer.removeAttribute("src");
+    viewer.srcdoc = `
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              margin: 0;
+              height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .container {
+              text-align: center;
+              padding: 40px;
+            }
+            h1 { 
+              font-size: 3.5rem; 
+              margin-bottom: 20px;
+              text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            }
+            p {
+              font-size: 1.2rem;
+              opacity: 0.95;
+              margin-bottom: 10px;
+            }
+            .emoji {
+              font-size: 4rem;
+              margin-bottom: 20px;
+            }
+            .tips {
+              margin-top: 40px;
+              background: rgba(255,255,255,0.1);
+              padding: 25px;
+              border-radius: 10px;
+              max-width: 600px;
+              margin-left: auto;
+              margin-right: auto;
+              backdrop-filter: blur(10px);
+            }
+            .tips h3 {
+              margin-bottom: 15px;
+              font-size: 1.1rem;
+            }
+            .tips ul {
+              text-align: left;
+              list-style: none;
+            }
+            .tips li {
+              padding: 8px 0;
+              opacity: 0.9;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="emoji">🧮</div>
+            <h1>Calculator Tool</h1>
+            <p>Search and browse anything with ease</p>
+            
+            <div class="tips">
+              <h3>✨ Quick Tips:</h3>
+              <ul>
+                <li>🔍 Search: Type any search term or question</li>
+                <li>🌐 Websites: Paste a full URL (e.g., itch.io, xbox.com)</li>
+                <li>📱 Multiple tabs: Open multiple sites at once</li>
+                <li>❌ Close tabs: Click the × button on any tab</li>
+              </ul>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  showHome();
+
+  document.getElementById("homeBtn").onclick = () => {
+    clearTabs();
+    showHome();
+  };
+
+  function clearTabs() {
+    while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
+  }
+
+  function setActive(tab) {
+    Array.from(tabs.children).forEach(t => t.classList.remove("active"));
+    if (tab) tab.classList.add("active");
+  }
+
+  function openTab(url) {
+    const proxied = PROXY_ENDPOINT + encodeURIComponent(url);
+
+    const tab = document.createElement("div");
+    tab.className = "tab";
+
+    const label = document.createElement("span");
+    label.textContent = url.substring(0, 50);
+    label.title = url;
+
+    const closeBtn = document.createElement("span");
+    closeBtn.textContent = "×";
+    closeBtn.className = "closeBtn";
+
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      const active = tab.classList.contains("active");
+      tab.remove();
+
+      if (active) {
+        if (tabs.children.length > 0) {
+          const last = tabs.children[tabs.children.length - 1];
+          setActive(last);
+          viewer.src = last.dataset.url;
+        } else showHome();
+      }
+    };
+
+    tab.appendChild(label);
+    tab.appendChild(closeBtn);
+    tab.dataset.url = proxied;
+
+    tab.onclick = () => {
+      setActive(tab);
+      viewer.src = proxied;
+      viewer.removeAttribute("srcdoc");
+    };
+
+    tabs.appendChild(tab);
+    setActive(tab);
+    viewer.src = proxied;
+    viewer.removeAttribute("srcdoc");
+  }
+
+  searchBar.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      let q = searchBar.value.trim();
+      if (!q) return;
+
+      if (!q.startsWith("http://") && !q.startsWith("https://")) {
+        // Assume it's a search query
+        q = "https://www.bing.com/search?q=" + encodeURIComponent(q);
+      }
+
+      openTab(q);
+      searchBar.value = "";
+    }
+  });
+
+  // Allow pasting URLs
+  searchBar.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    searchBar.value = text;
+  });
+</script>
+
+</body>
+</html>
