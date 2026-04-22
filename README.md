@@ -10,14 +10,28 @@ A powerful proxy tool disguised as a calculator. Search and access any website (
 - Multi-tab support for browsing multiple sites simultaneously
 - Sleek, modern UI
 - Disguised as a calculator app for discretion
-- Works on Replit & any Node.js environment
+- Works on Replit, GitHub Codespaces & any Node.js environment
 
-## Installation & Setup
+## Quick Start Options
 
-### Local Development
+### 1️⃣ GitHub Codespaces (Recommended - Free)
 
-1. **Clone or navigate to the project:**
+Click the button below to launch instantly in your browser:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/mykiah-phantom/proxy)
+
+Or manually:
+1. Go to your repository
+2. Click **Code** → **Codespaces** → **Create codespace on main**
+3. Wait for the environment to load (auto-installs dependencies)
+4. Terminal will show: `🧮 Calculator Tool running on port 3000`
+5. Click the "Ports" tab and open port 3000
+
+### 2️⃣ Local Development
+
+1. **Clone the repository:**
    ```bash
+   git clone https://github.com/mykiah-phantom/proxy.git
    cd proxy
    ```
 
@@ -36,20 +50,12 @@ A powerful proxy tool disguised as a calculator. Search and access any website (
    http://localhost:3000
    ```
 
-### Replit Deployment
+### 3️⃣ Replit Deployment
 
-1. **Import to Replit:**
-   - Go to [Replit.com](https://replit.com)
-   - Click "Create" → "Import from GitHub"
-   - Paste your repository URL
-   - Click "Import"
-
-2. **Run:**
-   - Click the "Run" button
-   - Replit will automatically install dependencies and start the server
-
-3. **Access:**
-   - Your app will be available at the Replit URL (e.g., `https://calculator-tool.username.repl.co`)
+1. Go to [Replit.com](https://replit.com)
+2. Click "Create" → "Import from GitHub"
+3. Paste: `https://github.com/mykiah-phantom/proxy`
+4. Click "Import" and then "Run"
 
 ## Usage
 
@@ -83,15 +89,15 @@ When you request a URL:
 
 ## Deployment Options
 
-- **Replit** (recommended for simplicity)
-- **Heroku**
-- **Railway**
-- **Render**
-- **Any Node.js hosting**
+| Platform | Setup Time | Cost |
+|----------|-----------|------|
+| **GitHub Codespaces** | 1 click | Free (120 hours/month) |
+| **Replit** | 2 minutes | Free tier available |
+| **Heroku** | 5 minutes | Paid (discontinued free tier) |
+| **Railway** | 5 minutes | Paid (pay-as-you-go) |
+| **Render** | 5 minutes | Free tier available |
 
-## Advanced Features
-
-### API Endpoints
+## API Endpoints
 
 - `GET /calc?url=<URL>` - Proxy a URL
 - `GET /math?url=<URL>` - Alias for /calc
@@ -99,14 +105,40 @@ When you request a URL:
 - `GET /api/search?q=<query>` - Search API
 - `GET /health` - Health check
 
-## Security Notes
+## Environment Variables
 
-This tool:
-- Passes through requests without modification (aside from User-Agent)
-- Does not store any data or cookies
-- Does not track user activity
-- Works entirely through your browser
-- Complies with standard proxy practices
+```bash
+PORT=3000              # Server port (default: 3000)
+NODE_ENV=production    # Environment mode
+```
+
+## Project Structure
+
+```
+proxy/
+├── .devcontainer/          # GitHub Codespaces config
+├── public/
+│   └── index.html         # Frontend interface
+├── index.js               # Backend server
+├── package.json           # Dependencies
+├── .replit                # Replit config
+├── .gitignore
+└── README.md
+```
+
+## Troubleshooting
+
+**Issue**: Port already in use
+- **Solution**: `PORT=8000 npm start`
+
+**Issue**: Codespaces stuck loading
+- **Solution**: Refresh the page or restart the codespace
+
+**Issue**: Website won't load
+- **Solution**: Some sites block proxy access; this is expected
+
+**Issue**: CORS errors
+- **Solution**: CORS is enabled; check browser console for specific errors
 
 ## Customization
 
@@ -117,24 +149,19 @@ const PORT = process.env.PORT || 3000; // Change 3000 to your desired port
 ```
 
 ### Change Endpoints
-Edit the endpoint names in `index.js`:
-```javascript
-app.get('/calc', (req, res) => { ... }); // Change '/calc' to any name
-```
+Modify `/calc` endpoint name in `index.js`
 
 ### Customize Frontend
-Edit `public/index.html` to change colors, text, or styling.
+Edit `public/index.html` to change colors, text, or styling
 
-## Troubleshooting
+## Security Notes
 
-**Issue**: Port already in use
-- **Solution**: Change PORT in index.js or set `PORT=8000 npm start`
-
-**Issue**: CORS errors
-- **Solution**: CORS is already enabled, check browser console for specific errors
-
-**Issue**: Website won't load
-- **Solution**: Some sites block proxy access; this is expected and not a bug
+This tool:
+- Passes requests through without modification
+- Does not store any data or cookies
+- Does not track user activity
+- Works entirely through your browser
+- Complies with standard proxy practices
 
 ## License
 
@@ -142,8 +169,9 @@ ISC
 
 ## Support
 
-For issues or feature requests, check the repository or create an issue.
+For issues or questions, create an issue in the repository.
 
 ---
 
-**Enjoy browsing! 🧮**
+**Get started now! 🧮** - Click "Open in GitHub Codespaces" above
+
